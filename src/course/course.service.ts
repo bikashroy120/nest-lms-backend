@@ -4,7 +4,10 @@ import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Course, courseDocument } from './schema/course.schema';
-import { Model } from 'mongoose';
+import { Model, SortOrder } from 'mongoose';
+import { CourseFilterDto } from './dto/course-filter.dto';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
+import { calculatePagination } from 'src/common/helper/paginationHelper';
 
 @Injectable()
 export class CourseService {
@@ -16,19 +19,77 @@ export class CourseService {
     return createCourse;
   }
 
-  findAll() {
-    return `This action returns all course`;
+  async findAll(filters: CourseFilterDto, paginationOption: PaginationDto) {
+
+    const { searchTerm, ...filterFields } = filters;
+
+    const andConditions: any[] = [];
+
+    if (searchTerm) {
+      andConditions.push({
+        $or: ["title", "description", "level", "category"].map((filed) => ({
+          [filed]: { $regex: searchTerm, $options: "i" }
+        }))
+      })
+    }
+
+    if (Object.keys(filterFields).length) {
+      andConditions.push({
+        $and: Object.entries(filterFields).map(([key, value]) => {
+          if (Array.isArray(value)) {
+            return { [key]: { $in: value } }
+          }
+          return { [key]: value }
+        })
+      })
+    }
+
+
+    const whereCondition = andConditions.length ? { $and: andConditions } : {};
+    const { skip, page, limit, sortBy, sortOrder } = calculatePagination(paginationOption);
+    const sortCondition: Record<string, SortOrder> = {}
+
+    console.log("=======", whereCondition);
+
+    if (sortBy) {
+      sortCondition[sortBy] = sortOrder === 'asc' ? 1 : -1
+    }
+
+    const [data, total] = await Promise.all([
+      this.courseModel
+        .find(whereCondition)
+        .sort(sortCondition)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      this.courseModel.countDocuments(whereCondition),
+    ])
+
+    return {
+      meta: {
+        page,
+        limit,
+        total,
+        totalPage: Math.ceil(total / limit),
+      },
+      data,
+    }
+
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} course`;
+  async findOne(id: number) {
+    const result = await this.courseModel.findById(id);
+    return result;
   }
 
-  update(id: number, updateCourseDto: UpdateCourseDto) {
-    return `This action updates a #${id} course`;
+  async update(id: number, updateCourseDto: UpdateCourseDto) {
+    const result = await this.courseModel.findByIdAndUpdate(id, { ...updateCourseDto }, { new: true });
+    return result;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} course`;
+  async remove(id: number) {
+    const result = await this.courseModel.findByIdAndDelete(id);
+    return result;
   }
 }

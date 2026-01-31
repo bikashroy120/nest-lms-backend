@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { CourseService } from './course.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { UpdateCourseDto } from './dto/update-course.dto';
@@ -7,6 +7,8 @@ import { AuthGuard } from 'src/auth/auth.guard';
 import { Roles } from 'src/auth/roles.decorator';
 import { Role } from 'src/user/role.enum';
 import { RolesGuard } from 'src/auth/roles.guard';
+import { pick } from 'src/common/helper/pick';
+import { paginationFields } from 'src/common/helper/constant';
 
 @Controller('course')
 export class CourseController {
@@ -20,8 +22,10 @@ export class CourseController {
   }
 
   @Get()
-  findAll() {
-    return this.courseService.findAll();
+  async findAll(@Query() query: Record<string, any>) {
+    const filterData = pick(query, ["searchTram", "level", "category"])
+    const paginationOption = pick(query, paginationFields)
+    return this.courseService.findAll(filterData, paginationOption)
   }
 
   @Get(':id')
@@ -30,6 +34,8 @@ export class CourseController {
   }
 
   @Patch(':id')
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(Role.Admin)
   update(@Param('id') id: string, @Body() updateCourseDto: UpdateCourseDto) {
     return this.courseService.update(+id, updateCourseDto);
   }
