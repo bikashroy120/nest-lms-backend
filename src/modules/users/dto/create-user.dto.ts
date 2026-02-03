@@ -11,7 +11,7 @@ export class CreateUserDto {
 
   @IsEmail()
   @IsOptional()
-  email: string
+  email?: string
 
   @IsString()
   @MinLength(4, { message: "password must be at least 4 characters long" })
