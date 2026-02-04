@@ -1,35 +1,42 @@
+import { UseGuards } from '@nestjs/common';
 /* eslint-disable prettier/prettier */
 import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { AuthGuard } from 'src/common/guard/auth.guard';
+import { RolesGuard } from 'src/common/guard/roles.guard';
+import { Roles } from 'src/common/decorator/roles.decorator';
+import { UserRole } from 'src/common/enum/role.enum';
 
 @Controller('category')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) { }
 
   @Post()
-  create(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.categoryService.create(createCategoryDto);
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  async create(@Body() createCategoryDto: CreateCategoryDto) {
+    return await this.categoryService.create(createCategoryDto);
   }
 
   @Get()
-  findAll() {
-    return this.categoryService.findAll();
+  async findAll() {
+    return await this.categoryService.findAll();
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(id);
+  async findOne(@Param('id') id: string) {
+    return await this.categoryService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
-    return this.categoryService.update(id, updateCategoryDto);
+  async update(@Param('id') id: string, @Body() updateCategoryDto: UpdateCategoryDto) {
+    return await this.categoryService.update(id, updateCategoryDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.categoryService.remove(id);
+  async remove(@Param('id') id: string) {
+    return await this.categoryService.remove(id);
   }
 }

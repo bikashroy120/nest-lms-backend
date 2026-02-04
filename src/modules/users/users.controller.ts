@@ -1,3 +1,5 @@
+import { AuthGuard } from './../../common/guard/auth.guard';
+import { UseGuards } from '@nestjs/common';
 /* eslint-disable prettier/prettier */
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
@@ -5,6 +7,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { pick } from 'src/common/helper/pick';
 import { paginationFields } from 'src/common/helper/constant';
+import { Roles } from 'src/common/decorator/roles.decorator';
+import { UserRole } from 'src/common/enum/role.enum';
+import { RolesGuard } from 'src/common/guard/roles.guard';
 
 @Controller('users')
 export class UsersController {
@@ -16,6 +21,8 @@ export class UsersController {
   }
 
   @Get()
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
   findAll(@Query() query: Record<string, any>) {
     const filterData = pick(query, ["searchTram", "level", "category"])
     const paginationOption = pick(query, paginationFields)
