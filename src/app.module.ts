@@ -7,6 +7,7 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { CategoryModule } from './modules/category/category.module';
 import { CourseModule } from './modules/course/course.module';
+import { LessonModule } from './modules/lesson/lesson.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { CourseModule } from './modules/course/course.module';
     AuthModule,
     CategoryModule,
     CourseModule,
+    LessonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
