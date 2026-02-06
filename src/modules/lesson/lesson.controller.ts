@@ -20,7 +20,7 @@ export class LessonController {
   }
 
   @Get("all/:id")
-  async findAll(@Param() id: string) {
+  async findAll(@Param('id') id: string) {
     return await this.lessonService.findAll(id);
   }
 
