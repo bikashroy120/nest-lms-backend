@@ -25,6 +25,14 @@ export class LessonService {
     return result;
   }
 
+  async findAllStudent(studentId: string, courseId: string) {
+    const result = await this.lessonModel.find({ courseId: courseId });
+    if (!result) {
+      return []
+    }
+    return result;
+  }
+
   async findOne(id: string) {
     const lesson = await this.lessonModel.findById(id);
     if (!lesson) {
