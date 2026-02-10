@@ -1,4 +1,4 @@
-import { UseGuards } from '@nestjs/common';
+import { Req, UseGuards } from '@nestjs/common';
 /* eslint-disable prettier/prettier */
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { EnrollmentService } from './enrollment.service';
@@ -10,6 +10,7 @@ import { AuthGuard } from 'src/common/guard/auth.guard';
 import { RolesGuard } from 'src/common/guard/roles.guard';
 import { Roles } from 'src/common/decorator/roles.decorator';
 import { UserRole } from 'src/common/enum/role.enum';
+import type { Request } from 'express';
 
 @Controller('enrollment')
 export class EnrollmentController {
@@ -27,6 +28,15 @@ export class EnrollmentController {
     const paginationOptions = pick(query, paginationFields)
     return this.enrollmentService.findAll(paginationOptions);
   }
+
+  @Get("student")
+  @UseGuards(AuthGuard)
+  finnStudent(@Req() req: Request, @Query() query: Record<string, any>) {
+    const paginationOptions = pick(query, paginationFields)
+    const userId = req.user?.sub as string;
+    return this.enrollmentService.findStudent(userId, paginationOptions);
+  }
+
 
   @Get(':id')
   @UseGuards(AuthGuard)

@@ -9,6 +9,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { CourseModule } from './modules/course/course.module';
 import { LessonModule } from './modules/lesson/lesson.module';
 import { EnrollmentModule } from './modules/enrollment/enrollment.module';
+import { ProgressModule } from './modules/progress/progress.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { EnrollmentModule } from './modules/enrollment/enrollment.module';
     CourseModule,
     LessonModule,
     EnrollmentModule,
+    ProgressModule,
   ],
   controllers: [AppController],
   providers: [AppService],

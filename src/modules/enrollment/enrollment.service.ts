@@ -4,13 +4,14 @@ import { CreateEnrollmentDto } from './dto/create-enrollment.dto';
 import { UpdateEnrollmentDto } from './dto/update-enrollment.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Enrollment, EnrollmentDocument } from './schema/enrollment.schema';
-import { Model, SortOrder } from 'mongoose';
+import mongoose, { Model, SortOrder } from 'mongoose';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { calculatePagination } from 'src/common/helper/paginationHelper';
+import { Progress, ProgressDocument } from '../progress/schema/progress.schema';
 
 @Injectable()
 export class EnrollmentService {
-  constructor(@InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>) { }
+  constructor(@InjectModel(Enrollment.name) private enrollmentModel: Model<EnrollmentDocument>, @InjectModel(Progress.name) private progressModel: Model<ProgressDocument>) { }
   async create(createEnrollmentDto: CreateEnrollmentDto) {
 
     const result = await this.enrollmentModel.findOne({ student: createEnrollmentDto.student, course: createEnrollmentDto.course });
@@ -22,6 +23,19 @@ export class EnrollmentService {
     const enrollment = await this.enrollmentModel.create({ ...createEnrollmentDto });
     if (!enrollment) {
       throw new BadRequestException("failed to create Enrollment")
+    }
+
+    const progress = await this.progressModel.create({
+      course: createEnrollmentDto.course,
+      student: createEnrollmentDto.student,
+      completedLesson: [],
+      completionPercent: 0
+    })
+
+    console.log(createEnrollmentDto, progress);
+
+    if (!progress) {
+      throw new BadRequestException("failed to create progress")
     }
 
     return enrollment;
@@ -70,6 +84,83 @@ export class EnrollmentService {
     }
 
 
+  }
+
+  async findStudent(studentId: string, paginationOptions: PaginationDto) {
+    const { page, limit, skip, sortBy, sortOrder } =
+      calculatePagination(paginationOptions);
+
+    const sortCondition: Record<string, 1 | -1> = {};
+
+    if (sortBy) {
+      sortCondition[sortBy] = sortOrder === "asc" ? 1 : -1;
+    }
+
+    const result = await this.enrollmentModel.aggregate<{
+      meta: Array<{ total: number }>;
+      data: Array<{ title: string; thumbnail: string; completionPercent: number }>;
+    }>([
+      {
+        $match: {
+          student: new mongoose.Types.ObjectId(studentId),
+        },
+      },
+
+      // course join
+      {
+        $lookup: {
+          from: "courses",
+          localField: "course",
+          foreignField: "_id",
+          as: "course",
+        },
+      },
+      { $unwind: "$course" },
+
+      // progress join
+      {
+        $lookup: {
+          from: "progresses",
+          localField: "course._id",
+          foreignField: "course",
+          as: "progress",
+        },
+      },
+
+      {
+        $project: {
+          courseId: "$course._id",
+          title: "$course.title",
+          thumbnail: "$course.thumbnail",
+          price: "$course.price",
+          category: "$course.category",
+          description: "$course.description",
+          completionPercent: {
+            $arrayElemAt: ["$progress.completionPercent", 0],
+          },
+        },
+      },
+
+      {
+        $facet: {
+          meta: [{ $count: "total" }],
+          data: [
+            { $sort: sortCondition || { _id: -1 } },
+            { $skip: skip },
+            { $limit: limit },
+          ],
+        },
+      },
+    ]);
+
+    return {
+      meta: {
+        page,
+        limit,
+        total: result[0]?.meta[0]?.total || 0,
+      },
+      data: result[0]?.data || [],
+    };
   }
 
   async findOne(id: string) {
